@@ -1,0 +1,29 @@
+# Python
+*.pyc
+__pycache__/
+
+# Virtual environments
+.venv/
+
+
+
+# Streamlit specific
+.streamlit/
+.stcache/
+.stfolder/
+
+# Jupyter Notebooks checkpoints (if applicable)
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Config files (if you have local or sensitive settings)
+*.env
+config.yaml
+credentials.toml
+
