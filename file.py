@@ -7,11 +7,9 @@ import os
 import json
 from transformers import pipeline
 from dotenv import load_dotenv
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Load environment variables
 load_dotenv()
-model_name = "mistralai/Mistral-7B-v0.1"
 
 # Database setup
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://chatuser:password@localhost/amdocschatbot")
@@ -21,7 +19,7 @@ Base = declarative_base()
 
 # Define database model
 class ChatHistory(Base):
-    __tablename__ = "chat_history"  # Fixed typo here, should be __tablename__ (double underscores)
+    __tablename__ = "chat_history"
     session_id = Column(String, primary_key=True)
     role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
@@ -29,25 +27,9 @@ class ChatHistory(Base):
 
 Base.metadata.create_all(engine)
 
-
-# Initialize NLP model
-
-# Load model directly
-
-
-tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
-model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1")
-
-# model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir="./models", trust_remote_code=True)
-# tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir="./models", trust_remote_code=True)
-
-# qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", device=0)
-# print(qa_model("Translate 'Hello' to French"))
-
-
-print("Model successfully downloaded!")
+# ✅ Use Hugging Face's API (No Local Download)
+qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", trust_remote_code=True)
 sentiment_analysis = pipeline("sentiment-analysis")
-qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1")
 
 RED_FLAGS = ["suicide", "self-harm", "depression"]
 
@@ -83,6 +65,7 @@ def analyze_red_flags(user_input):
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. The sidebar has a list of Mental Health Helplines."
     return False, ""
 
+# ✅ Update generate_response to use the API without local inference
 def generate_response(user_input, session_id):
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
@@ -90,7 +73,8 @@ def generate_response(user_input, session_id):
     
     chat_history = get_chat_history(session_id)
     prompt_context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_history[-5:]])
-    prompt = f"User: {user_input}\nAI:" 
+    prompt = f"User: {user_input}\nAI:"
+
     response = qa_model(prompt, max_length=100, do_sample=True)[0]['generated_text']
     return response.strip()
 
@@ -123,5 +107,5 @@ def main():
             st.markdown(response)
         save_message(session_id, "assistant", response)
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     main()
