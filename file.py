@@ -27,7 +27,7 @@ class ChatHistory(Base):
 
 Base.metadata.create_all(engine)
 
-# ✅ Use Hugging Face's API (No Local Download)
+# Use Hugging Face's API (No Local Download)
 qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", trust_remote_code=True)
 sentiment_analysis = pipeline("sentiment-analysis")
 
@@ -65,7 +65,7 @@ def analyze_red_flags(user_input):
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. The sidebar has a list of Mental Health Helplines."
     return False, ""
 
-# ✅ Update generate_response to use the API without local inference
+# Update generate_response to use the API without local inference
 def generate_response(user_input, session_id):
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
