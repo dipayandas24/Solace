@@ -7,9 +7,11 @@ import os
 import json
 from transformers import pipeline
 from dotenv import load_dotenv
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # Load environment variables
 load_dotenv()
+model_name = "mistralai/Mistral-7B-v0.1"
 
 # Database setup
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://chatuser:password@localhost/amdocschatbot")
@@ -27,7 +29,23 @@ class ChatHistory(Base):
 
 Base.metadata.create_all(engine)
 
+
 # Initialize NLP model
+
+# Load model directly
+
+
+tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
+model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1")
+
+# model = AutoModelForCausalLM.from_pretrained(model_name, cache_dir="./models", trust_remote_code=True)
+# tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir="./models", trust_remote_code=True)
+
+# qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", device=0)
+# print(qa_model("Translate 'Hello' to French"))
+
+
+print("Model successfully downloaded!")
 sentiment_analysis = pipeline("sentiment-analysis")
 qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1")
 

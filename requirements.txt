@@ -2,3 +2,10 @@ streamlit
 pandas
 python-dotenv
 psycopg2
+transformers
+sqlalchemy
+tensorflow
+tf-keras
+faiss-cpu
+huggingface_hub
+torch
