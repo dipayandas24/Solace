@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, Column, String, Text, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 import os
+os.environ["HF_HUB_DISABLE_CACHE"] = "1"
 import json
 from transformers import pipeline
 from dotenv import load_dotenv
@@ -27,8 +28,17 @@ class ChatHistory(Base):
 
 Base.metadata.create_all(engine)
 
+HUGGINGFACE_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN")
+
+# Initialize the pipeline with remote inference and authentication
+qa_model = pipeline("text-generation", 
+                    model="mistralai/Mistral-7B-v0.1", 
+                    trust_remote_code=True,
+                    use_auth_token=HUGGINGFACE_API_TOKEN)
+
+
 # Use Hugging Face's API (No Local Download)
-qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", trust_remote_code=True)
+# qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", trust_remote_code=True)
 sentiment_analysis = pipeline("sentiment-analysis")
 
 RED_FLAGS = ["suicide", "self-harm", "depression"]
