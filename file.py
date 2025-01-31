@@ -6,8 +6,8 @@ from datetime import datetime
 import os
 os.environ["HF_HUB_DISABLE_CACHE"] = "1"
 import json
-from transformers import pipeline
 from dotenv import load_dotenv
+from huggingface_hub import InferenceClient
 
 # Load environment variables
 load_dotenv()
@@ -28,18 +28,14 @@ class ChatHistory(Base):
 
 Base.metadata.create_all(engine)
 
-HUGGINGFACE_API_TOKEN = os.getenv("HUGGINGFACE_API_TOKEN")
 
-# Initialize the pipeline with remote inference and authentication
-qa_model = pipeline("text-generation", 
-                    model="mistralai/Mistral-7B-v0.1", 
-                    trust_remote_code=True,
-                    use_auth_token=HUGGINGFACE_API_TOKEN)
+# Get Hugging Face API key
+HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
+if not HF_API_KEY:
+    raise ValueError("Hugging Face API Key is missing. Set HUGGINGFACE_API_KEY in your .env file.")
 
-
-# Use Hugging Face's API (No Local Download)
-# qa_model = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1", trust_remote_code=True)
-sentiment_analysis = pipeline("sentiment-analysis")
+# Use Hugging Face Inference API instead of local model
+client = InferenceClient(model="mistralai/Mistral-7B-v0.1", token=HF_API_KEY)
 
 RED_FLAGS = ["suicide", "self-harm", "depression"]
 
@@ -75,17 +71,19 @@ def analyze_red_flags(user_input):
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. The sidebar has a list of Mental Health Helplines."
     return False, ""
 
-# Update generate_response to use the API without local inference
+# Generate response using Hugging Face API
 def generate_response(user_input, session_id):
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
         return red_flag_response
-    
+
     chat_history = get_chat_history(session_id)
     prompt_context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in chat_history[-5:]])
     prompt = f"User: {user_input}\nAI:"
 
-    response = qa_model(prompt, max_length=100, do_sample=True)[0]['generated_text']
+    # Call Hugging Face API for inference
+    response = client.text_generation(prompt, max_new_tokens=100)
+
     return response.strip()
 
 def main():
