@@ -19,8 +19,8 @@ Base = declarative_base()
 # Define database model
 class ChatHistory(Base):
     __tablename__ = "chat_history"
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String, nullable=False, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)  # Fixed primary key
+    session_id = Column(String, nullable=False, index=True)  # No primary key
     role = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
@@ -32,7 +32,7 @@ HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 if not HF_API_KEY:
     raise ValueError("Hugging Face API Key is missing. Set HUGGINGFACE_API_KEY in your .env file.")
 
-client = InferenceClient(api_key=HF_API_KEY)
+client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
 
 RED_FLAGS = ["suicide", "self-harm", "depression"]
 
@@ -68,15 +68,24 @@ def analyze_red_flags(user_input):
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. The sidebar has a list of Mental Health Helplines."
     return False, ""
 
-def generate_response(user_input, model_choice):
+def generate_response(user_input, session_id, model_name):
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
         return red_flag_response
 
+    messages = [{"role": "user", "content": user_input}]
+
     try:
-        # Correct API usage
-        response = client.text_generation(model=model_choice, prompt=user_input, max_new_tokens=250)
-        return response.strip() if response else "Sorry, I couldn't generate a response."
+        completion = client.chat.completions.create(
+            model=model_name,
+            messages=messages, 
+            max_tokens=500
+        )
+
+        if completion.choices:
+            return completion.choices[0].message.content.strip()
+        else:
+            return "Sorry, I couldn't generate a response."
 
     except Exception as e:
         error_message = f"Error in response generation: {str(e)}"
@@ -91,7 +100,7 @@ def main():
     session_id = get_session_id()
 
     with st.sidebar:
-        model_choice = st.selectbox("Select your model:", ["facebook/blenderbot-3B", "facebook/blenderbot-400M-distill"])
+        selected_model = st.selectbox("Select your model:", ["meta-llama/Meta-Llama-3-8B-Instruct", "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"])
         if st.button("Restart Session"):
             reset_session()
         st.markdown("### 📞 Mental Health Helplines")
@@ -108,9 +117,9 @@ def main():
         with st.chat_message("user"):
             st.markdown(user_input)
         save_message(session_id, "user", user_input)
-        
+
         with st.chat_message("assistant"):
-            response = generate_response(user_input, model_choice)
+            response = generate_response(user_input, session_id, selected_model) 
             st.markdown(response)
         save_message(session_id, "assistant", response)
 
