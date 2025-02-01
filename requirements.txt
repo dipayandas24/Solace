@@ -9,3 +9,5 @@ tf-keras
 faiss-cpu
 huggingface_hub
 torch
+speechrecognition
+audio-recorder-streamlit

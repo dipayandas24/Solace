@@ -6,6 +6,9 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
+import speech_recognition as sr
+import tempfile
+from audio_recorder_streamlit import audio_recorder
 
 # Load environment variables
 load_dotenv()
@@ -93,6 +96,38 @@ def generate_response(user_input, session_id, model_name):
         st.error(error_message)
         return "Oops! Something went wrong. Please try again later."
 
+def handle_voice_input():
+    # Record the audio input
+    audio_data = audio_recorder()
+
+    if audio_data is not None:
+        # Save the audio to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
+            temp_audio_file.write(audio_data)
+            temp_audio_file.close()
+
+            # Use speech recognition to convert audio to text
+            recognizer = sr.Recognizer()
+            audio_file = sr.AudioFile(temp_audio_file.name)
+            
+            with audio_file as source:
+                audio = recognizer.record(source)
+            
+            try:
+                user_input = recognizer.recognize_google(audio)  # Using Google Speech Recognition
+                st.markdown(f"**You said**: {user_input}")
+
+                return user_input
+
+            except sr.UnknownValueError:
+                st.error("Sorry, I couldn't understand the audio.")
+                return None
+            except sr.RequestError as e:
+                st.error(f"Could not request results from Google Speech Recognition service; {e}")
+                return None
+    else:
+        return None
+
 def main():
     st.title(":speech_balloon: EmotiAI Support Chatbot")
     st.markdown("Welcome to the Emotional Health Support Chatbot. ❤️")
@@ -112,16 +147,24 @@ def main():
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    user_input = st.chat_input("How can I support you today?")
-    if user_input:
-        with st.chat_message("user"):
-            st.markdown(user_input)
-        save_message(session_id, "user", user_input)
+    # Input type selection: Text or Voice
+    input_type = st.radio("How would you like to input your message?", ("Text", "Voice"))
 
+    if input_type == "Text":
+        user_input = st.text_input("Type your message here:")
+    elif input_type == "Voice":
+        user_input = handle_voice_input()
+
+    if user_input:
+        if input_type == "Text":
+            with st.chat_message("user"):
+                st.markdown(user_input)
+        save_message(session_id, "user", user_input)
+        
         with st.chat_message("assistant"):
             response = generate_response(user_input, session_id, selected_model) 
             st.markdown(response)
-        save_message(session_id, "assistant", response)
+        save_message(session_id, "assistant", response)        
 
 if __name__ == "__main__":
     main()
