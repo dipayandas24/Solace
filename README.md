@@ -1,4 +1,4 @@
----
+
 
 # Solace - AI-Powered Chatbot
 
@@ -11,7 +11,6 @@
 - *Cloud Deployment: Dockerized and hosted on **AWS* for scalability and performance.
 - *Easy Setup*: Quick setup using Docker, Python dependencies, and environment variables.
 
----
 
 ## Installation
 
