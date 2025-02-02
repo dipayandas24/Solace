@@ -148,6 +148,38 @@ def typewriter_effect(text, speed=0.01):  # Increased typing speed (reduced dela
         placeholder.markdown(f'<div class="assistant-message">{text[:i]}</div>', unsafe_allow_html=True)
         time.sleep(speed)  # Reduced delay for faster typing effect
 
+def handle_voice_input():
+    # Record the audio input
+    audio_data = audio_recorder()
+
+    if audio_data is not None:
+        # Save the audio to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
+            temp_audio_file.write(audio_data)
+            temp_audio_file.close()
+
+            # Use speech recognition to convert audio to text
+            recognizer = sr.Recognizer()
+            audio_file = sr.AudioFile(temp_audio_file.name)
+            
+            with audio_file as source:
+                audio = recognizer.record(source)
+            
+            try:
+                user_input = recognizer.recognize_google(audio)  # Using Google Speech Recognition
+                st.markdown(f"**You said**: {user_input}")
+
+                return user_input
+
+            except sr.UnknownValueError:
+                st.error("Sorry, I couldn't understand the audio.")
+                return None
+            except sr.RequestError as e:
+                st.error(f"Could not request results from Google Speech Recognition service; {e}")
+                return None
+    else:
+        return None        
+
 def main():
     st.set_page_config(page_title="SoulSolace", page_icon="./logo.svg", layout="centered")
     st.markdown("""
