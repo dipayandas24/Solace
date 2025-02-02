@@ -95,8 +95,8 @@ def summarize_chat_history(session_id):
     
     chat_summary = f"Conversation Summary:\n{user_summary}\n{assistant_summary}"
     
-    # Analyze emotions
-    emotions = te.get_emotion(chat_summary)
+    # Analyze emotions in the user summary
+    emotions = te.get_emotion(user_summary)
     dominant_emotion = max(emotions, key=emotions.get)  # Get the emotion with the highest score
 
     return chat_summary, dominant_emotion  # Return summary & emotion
