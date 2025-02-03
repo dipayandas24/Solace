@@ -23,8 +23,11 @@ Before running the project, make sure you have:
 Follow the steps below to set up Solace on your local machine:
 
 ###  1. Clone the Repository  
+
+```bash
 git clone https://github.com/your-repo/SoulSolace.git  
 cd SoulSolace  
+```
 
 ###  2. Create a Virtual Environment (optional but recommended)  
 
