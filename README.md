@@ -25,8 +25,8 @@ Follow the steps below to set up Solace on your local machine:
 ###  1. Clone the Repository  
 
 ```bash
-git clone https://github.com/your-repo/SoulSolace.git  
-cd SoulSolace  
+git clone https://github.com/dipayandas24/Solace  
+cd Solace  
 ```
 
 ###  2. Create a Virtual Environment (optional but recommended)  
@@ -72,8 +72,8 @@ If you want to run the application using Docker, follow the steps below:
 ###  1. Clone the Repository  
 
 ```bash
-git clone https://github.com/your-repo/SoulSolace.git  
-cd SoulSolace 
+git clone https://github.com/dipayandas24/Solace  
+cd Solace 
 ```
 
 
