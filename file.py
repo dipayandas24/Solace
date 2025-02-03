@@ -19,6 +19,7 @@ import speech_recognition as sr
 import tempfile
 from audio_recorder_streamlit import audio_recorder
 
+
 # Load environment variables
 load_dotenv()
 
@@ -148,37 +149,35 @@ def typewriter_effect(text, speed=0.01):  # Increased typing speed (reduced dela
         placeholder.markdown(f'<div class="assistant-message">{text[:i]}</div>', unsafe_allow_html=True)
         time.sleep(speed)  # Reduced delay for faster typing effect
 
-def handle_voice_input():
-    # Record the audio input
-    audio_data = audio_recorder()
+# # def handle_audio_input():
+#     # Record the audio input from the user when the mic icon is clicked
+#     audio_data = audio_recorder()
 
-    if audio_data is not None:
-        # Save the audio to a temporary file
-        with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
-            temp_audio_file.write(audio_data)
-            temp_audio_file.close()
+#     if audio_data:
+#         # Save the audio to a temporary file
+#         with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
+#             temp_audio_file.write(audio_data)
+#             temp_audio_file.close()
 
-            # Use speech recognition to convert audio to text
-            recognizer = sr.Recognizer()
-            audio_file = sr.AudioFile(temp_audio_file.name)
+#             # Use speech recognition to convert audio to text
+#             recognizer = sr.Recognizer()
+#             audio_file = sr.AudioFile(temp_audio_file.name)
             
-            with audio_file as source:
-                audio = recognizer.record(source)
+#             with audio_file as source:
+#                 audio = recognizer.record(source)
             
-            try:
-                user_input = recognizer.recognize_google(audio)  # Using Google Speech Recognition
-                st.markdown(f"**You said**: {user_input}")
-
-                return user_input
-
-            except sr.UnknownValueError:
-                st.error("Sorry, I couldn't understand the audio.")
-                return None
-            except sr.RequestError as e:
-                st.error(f"Could not request results from Google Speech Recognition service; {e}")
-                return None
-    else:
-        return None        
+#             try:
+#                 user_input = recognizer.recognize_google(audio)  # Using Google Speech Recognition
+#                 st.markdown(f"**You said**: {user_input}")
+#                 return user_input
+#             except sr.UnknownValueError:
+#                 st.error("Sorry, I couldn't understand the audio.")
+#                 return None
+#             except sr.RequestError as e:
+#                 st.error(f"Could not request results from Google Speech Recognition service; {e}")
+#                 return None
+#     else:
+#         return None        
 
 def main():
     st.set_page_config(page_title="SoulSolace", page_icon="./logo.svg", layout="centered")
@@ -201,10 +200,10 @@ def main():
                 width: fit-content;
             }
             .assistant-message {
-                background: rgba(241, 241, 241, 0.1);
+                background: rgba(60, 60, 60, 0.1); 
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(241, 241, 241, 0.2);
-                color: white;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                color: #808391;
                 padding: 10px;
                 border-radius: 15px;
                 margin: 5px 0;
@@ -212,6 +211,7 @@ def main():
                 margin-right: auto;
                 width: fit-content;
             }
+
             .stButton>button {
                 width: 100%;
                 border-radius: 20px;
@@ -237,8 +237,8 @@ def main():
                 justify-content: center;
             }
             .centered-subheader img {
-                width: 30px;  /* Adjust the size of the logo */
-                margin-right: 10px;  /* Space between logo and text */
+                width: 30px; 
+                margin-right: 10px;
             }    
 
             .sidebar-logo {
@@ -250,18 +250,18 @@ def main():
                 height: 50px;
             }
             .glassmorphic-button {
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(90, 90, 90, 0.1);  
                 backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.2); 
                 border-radius: 10px;
                 padding: 10px;
                 margin: 10px 0;
-                color: white;
                 text-align: center;
                 cursor: pointer;
             }
+
             .glassmorphic-button:hover {
-                background: rgba(255, 255, 255, 0.2);
+                background: rgba(90, 90, 90, 0.2);  
             }
             
             .sidebar-logo {
@@ -292,7 +292,7 @@ def main():
 
         # Glassmorphic Buttons
         st.markdown('<div class="glassmorphic-button">Select Model</div>', unsafe_allow_html=True)
-        selected_model = st.selectbox("", ["meta-llama/Meta-Llama-3-8B-Instruct", "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"], label_visibility="collapsed")
+        selected_model = st.selectbox("", ["meta-llama/Meta-Llama-3-8B-Instruct"], label_visibility="collapsed")
 
         if st.button("Restart Session", key="restart_button", help="Click to restart the session"):
             reset_session()
@@ -314,13 +314,13 @@ def main():
             else:
                 st.markdown(f'<div class="assistant-message">{message["content"]}</div>', unsafe_allow_html=True)
 
-    user_input = st.chat_input("How can I support you today?")
+    user_input = st.chat_input("Tell me. I'm here for you...")
     if user_input:
         st.markdown(f'<div class="user-message">{user_input}</div>', unsafe_allow_html=True)
         save_message(session_id, "user", user_input)
 
         response = generate_response(user_input, session_id, selected_model)
-        typewriter_effect(response, speed=0.04)  
+        typewriter_effect(response, speed=0.032)  
         save_message(session_id, "assistant", response)
 
 if __name__ == "__main__":
