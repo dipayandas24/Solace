@@ -5,61 +5,52 @@
 *Solace* is an AI-powered chatbot designed to provide users with personalized and engaging conversations. Using a combination of advanced NLP models like Meta's LLaMA, sentiment analysis tools, and speech recognition, Solace offers a seamless conversational experience with context-aware and emotion-sensitive responses. It supports both text and voice-based interactions and is fully dockerized and deployed on AWS for scalability and reliability.
 
 ## Features
-- *Contextual Conversations: Powered by **Meta LLaMA* for intelligent response generation.
-- *Emotion-Aware: Detects emotions through **Text2Emotion* and adapts responses accordingly.
-- *Voice Interaction: Supports **Speech-to-Text* and *Speech Recognition* for voice-based interactions.
-- *Cloud Deployment: Dockerized and hosted on **AWS* for scalability and performance.
-- *Easy Setup*: Quick setup using Docker, Python dependencies, and environment variables.
+- **Contextual Conversations**: Powered by **Meta LLaMA** for intelligent response generation.
+- **Emotion-Aware**: Detects emotions through **Text2Emotion** and adapts responses accordingly.
+- **Voice Interaction**: Supports **Speech-to-Text** and **Speech Recognition** for voice-based interactions.
+- **Cloud Deployment**: Dockerized and hosted on **AWS** for scalability and performance.
+- **Easy Setup**: Quick setup using **Docker**, **Python dependencies**, and **environment variables**.
 
 
 ## Installation
 
-### Prerequisites
-Before running the project, make sure you have:
-- *Docker* installed and running.
-- *AWS credentials* configured (if deploying on AWS).
-- *Python 3.x* installed.
+## Prerequisites  
+Before running the project, make sure you have:  
+- **[Docker](https://docs.docker.com/get-docker/)** installed and running.  
+- **[Python 3.10](https://www.python.org/downloads/)** installed. 
 
 ### Local Setup
 Follow the steps below to set up Solace on your local machine:
 
 1. *Clone the repository*:
 
-   bash
-   git clone https://github.com/dipayandas24/Solace.git
-   cd Solace
-   
+```bash
+# 1. Clone the Repository  
+git clone https://github.com/your-repo/SoulSolace.git  
+cd SoulSolace  
 
-2. *Create a virtual environment* (optional but recommended):
- bash
-   python3 -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-   
+# 2. Create a Virtual Environment (optional but recommended)  
 
-3. *Install required dependencies*:
+# On Linux/macOS  
+python3 -m venv venv  
+source venv/bin/activate  
 
-   bash
-   pip install -r requirements.txt
-   
+# On Windows (Run in PowerShell)  
+python -m venv venv  
+venv\Scripts\activate  
 
-4. *Set up environment variables*:
+# 3. Install Dependencies  
+pip install -r requirements.txt  
 
-   Copy the .env.example file to .env and modify the variables according to your configuration.
+## Run the Application  
 
-   bash
-   cp .env.example .env
+```bash
+# 1. Start the Streamlit application  
+streamlit run file.py  
 
-5. *Run the application*:
+## Access the Chatbot
 
-   Start the backend server with:
-
-   bash
-   python app.py
-   
-
-6. *Access the chatbot*:
-
-   Visit http://localhost:5000 to interact with the chatbot.
+Visit http://localhost:8501 to interact with the chatbot.
 
 ---
 
