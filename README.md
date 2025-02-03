@@ -22,30 +22,29 @@ Before running the project, make sure you have:
 ### Local Setup
 Follow the steps below to set up Solace on your local machine:
 
-# 1. Clone the Repository  
+###  1. Clone the Repository  
 git clone https://github.com/your-repo/SoulSolace.git  
 cd SoulSolace  
 
-# 2. Create a Virtual Environment (optional but recommended)  
+###  2. Create a Virtual Environment (optional but recommended)  
 
-# On Linux/macOS  
+###  On Linux/macOS  
 python3 -m venv venv  
 source venv/bin/activate  
 
-# On Windows (Run in PowerShell)  
+###  On Windows (Run in PowerShell)  
 python -m venv venv  
 venv\Scripts\activate  
 
-# 3. Install Dependencies  
+###  3. Install Dependencies  
 pip install -r requirements.txt  
 
-## Run the Application  
+###  Run the Application  
 
-
-# 1. Start the Streamlit application  
+###  1. Start the Streamlit application  
 streamlit run file.py  
 
-## Access the Chatbot
+###  Access the Chatbot
 
 Visit http://localhost:8501 to interact with the chatbot.
 
@@ -55,23 +54,16 @@ Visit http://localhost:8501 to interact with the chatbot.
 
 If you want to run the application using Docker, follow the steps below:
 
-1. *Clone the repository* (if not already cloned):
+###  1. Clone the Repository  
+git clone https://github.com/your-repo/SoulSolace.git  
+cd SoulSolace 
 
-   bash
-   git clone https://github.com/dipayandas24/Solace.git
-   cd Solace
-   
-2. *Set up environment variables*:
-
-   bash
-   cp .env.example .env
-   
 
 3. *Build the Docker image*:
 
-   bash
+   ```bash
    sudo docker-compose build
-   
+   ```
 
 4. *Run the containers*:
 
