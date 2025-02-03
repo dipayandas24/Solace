@@ -29,20 +29,32 @@ cd SoulSolace
 ###  2. Create a Virtual Environment (optional but recommended)  
 
 ###  On Linux/macOS  
+
+```bash
 python3 -m venv venv  
-source venv/bin/activate  
+source venv/bin/activate 
+``` 
 
 ###  On Windows (Run in PowerShell)  
+
+```bash
 python -m venv venv  
 venv\Scripts\activate  
+```
 
 ###  3. Install Dependencies  
+
+```bash
 pip install -r requirements.txt  
+```
 
 ###  Run the Application  
 
 ###  1. Start the Streamlit application  
+
+```bash
 streamlit run file.py  
+```
 
 ###  Access the Chatbot
 
@@ -55,37 +67,28 @@ Visit http://localhost:8501 to interact with the chatbot.
 If you want to run the application using Docker, follow the steps below:
 
 ###  1. Clone the Repository  
+
+```bash
 git clone https://github.com/your-repo/SoulSolace.git  
 cd SoulSolace 
+```
 
 
-3. *Build the Docker image*:
+### 2. Build the Docker Image:
 
    ```bash
    sudo docker-compose build
    ```
 
-4. *Run the containers*:
+### 3. Run the containers:
 
-   bash
+   ```bash
    sudo docker-compose up -d
-   
+   ```
 
-5. *Run migrations within Docker* (if applicable):
+### 4. Access the app:
 
-   bash
-   sudo docker-compose exec web python manage.py migrate
-   
-
-6. *Create a superuser* (if needed):
-
-   bash
-   sudo docker-compose exec web python manage.py createsuperuser
-   
-
-7. *Access the app*:
-
-   The app will be available at http://localhost:5000.
+   The app will be available at http://localhost:8501.
 
 ---
 
@@ -103,7 +106,7 @@ cd SoulSolace
 
 6. *PostgreSQL & SQLAlchemy*: Used for structured storage of user data and conversation history, ensuring quick retrieval and consistency.
 
-7. *Docker & AWS*: Docker ensures easy deployment and scalability, while AWS guarantees high availability and fault tolerance.
+7. *Docker*: Docker ensures easy deployment and scalability.
 
 ---
 
