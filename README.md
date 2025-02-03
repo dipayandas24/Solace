@@ -22,9 +22,6 @@ Before running the project, make sure you have:
 ### Local Setup
 Follow the steps below to set up Solace on your local machine:
 
-1. *Clone the repository*:
-
-```bash
 # 1. Clone the Repository  
 git clone https://github.com/your-repo/SoulSolace.git  
 cd SoulSolace  
@@ -44,7 +41,7 @@ pip install -r requirements.txt
 
 ## Run the Application  
 
-```bash
+
 # 1. Start the Streamlit application  
 streamlit run file.py  
 
