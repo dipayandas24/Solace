@@ -1,6 +1,5 @@
 import nltk
 nltk.download('punkt_tab')
-# Ensure nltk looks in the correct directory
 nltk.data.path.append('./venv/nltk_data')
 
 
@@ -13,18 +12,16 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from huggingface_hub import InferenceClient
-import time  # For simulating the typing effect
+import time  
 import text2emotion as te
 import speech_recognition as sr
 import tempfile
 from audio_recorder_streamlit import audio_recorder
 
-
-# Load environment variables
 load_dotenv()
 
 # Database setup
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://chatuser:password@localhost/amdocschatbot")
+DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
@@ -76,7 +73,6 @@ def get_chat_history(session_id):
     
     chat_history = [{"role": msg.role, "content": msg.content} for msg in messages]
     
-    # Check if the chat history has the correct format
     if not all(isinstance(message, dict) and "role" in message and "content" in message for message in chat_history):
         raise ValueError("Chat history format is incorrect. Expected a list of dictionaries with 'role' and 'content'.")
     
@@ -88,7 +84,7 @@ def summarize_chat_history(session_id):
     db.close()
 
     if not messages:
-        return "No prior conversation history.", "neutral"
+        return "No prior conversation.", "neutal"
 
     user_messages = [msg.content for msg in messages if msg.role == "user"]
     assistant_messages = [msg.content for msg in messages if msg.role == "assistant"]
@@ -98,11 +94,10 @@ def summarize_chat_history(session_id):
     
     chat_summary = f"Conversation Summary:\n{user_summary}\n{assistant_summary}"
     
-    # Analyze emotions in the user summary
     emotions = te.get_emotion(user_summary)
-    dominant_emotion = max(emotions, key=emotions.get)  # Get the emotion with the highest score
+    dominant_emotion = max(emotions, key=emotions.get)  
 
-    return chat_summary, dominant_emotion  # Return summary & emotion
+    return chat_summary, dominant_emotion 
 
 def analyze_red_flags(user_input):
     for flag in RED_FLAGS:
@@ -119,7 +114,7 @@ def generate_response(user_input, session_id, model_name):
     emotion_message = f"The user is currently feeling {emotion}."
     
     messages = [
-        {"role": "system", "content": "You are a mental health support chatbot. {emotion_message}. Tailor your response accordingly.Keep responses empathetic and relevant."},
+        {"role": "system", "content": f"You are a mental health support chatbot. {emotion_message}. Analyse and tailor your response accordingly. Keep responses empathetic and relevant."},
         {"role": "system", "content": chat_summary},
         {"role": "user", "content": user_input}
     ]
@@ -128,7 +123,7 @@ def generate_response(user_input, session_id, model_name):
         completion = client.chat.completions.create(
             model=model_name,
             messages=messages, 
-            max_tokens=500
+            max_tokens=1024
         )
 
         if completion.choices:
@@ -292,7 +287,7 @@ def main():
 
         # Glassmorphic Buttons
         st.markdown('<div class="glassmorphic-button">Select Model</div>', unsafe_allow_html=True)
-        selected_model = st.selectbox("", ["meta-llama/Meta-Llama-3-8B-Instruct"], label_visibility="collapsed")
+        selected_model = st.selectbox("", ["meta-llama/Meta-Llama-3-8B-Instruct"], label_visibility="hidden")
 
         if st.button("Restart Session", key="restart_button", help="Click to restart the session"):
             reset_session()

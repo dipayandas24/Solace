@@ -5,10 +5,12 @@ services:
     image: postgres:latest
     container_name: postgres_db
     restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: chatuser
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: amdocschatbot
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - "5432:5432"
     volumes:
@@ -22,12 +24,15 @@ services:
       - db
     ports:
       - "8501:8501"
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://chatuser:password@db/amdocschatbot
-      HUGGINGFACE_API_KEY: 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
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
+      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}
     volumes:
       - .:/app
     command: ["streamlit", "run", "file.py"]
 
 volumes:
   postgres_data:
+
