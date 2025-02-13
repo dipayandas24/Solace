@@ -84,7 +84,7 @@ def summarize_chat_history(session_id):
     db.close()
 
     if not messages:
-        return "No prior conversation.", "neutal"
+        return "No prior conversation.", "neutral"
 
     user_messages = [msg.content for msg in messages if msg.role == "user"]
     assistant_messages = [msg.content for msg in messages if msg.role == "assistant"]
@@ -111,11 +111,12 @@ def generate_response(user_input, session_id, model_name):
         return red_flag_response
 
     chat_summary, emotion = summarize_chat_history(session_id)
-    emotion_message = f"The user is currently feeling {emotion}."
+    emotion_message = f"The user has been feeling {emotion} Keep this feeling in mind."
     
     messages = [
-        {"role": "system", "content": f"You are a mental health support chatbot. {emotion_message}. Analyse and tailor your response accordingly. Keep responses empathetic and relevant."},
-        {"role": "system", "content": chat_summary},
+        {"role": "system", "content": f"You are a mental health support chatbot."},
+        {"role": "system", "content": f"Details of previous conversations: {chat_summary}"} ,
+        {"role": "system", "content": f"{emotion_message} Analyse and tailor your response accordingly. Keep responses empathetic and relevant."},
         {"role": "user", "content": user_input}
     ]
 
