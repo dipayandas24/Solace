@@ -4,6 +4,7 @@ nltk.data.path.append('./venv/nltk_data')
 
 
 import streamlit as st
+import requests
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
@@ -111,69 +112,59 @@ def generate_response(user_input, session_id, model_name):
         return red_flag_response
 
     chat_summary, emotion = summarize_chat_history(session_id)
-    emotion_message = f"The user has been feeling {emotion} Keep this feeling in mind."
-    
-    messages = [
-        {"role": "system", "content": f"You are a mental health support chatbot."},
-        {"role": "system", "content": f"Details of previous conversations: {chat_summary}"} ,
-        {"role": "system", "content": f"{emotion_message} Analyse and tailor your response accordingly. Keep responses empathetic and relevant."},
-        {"role": "user", "content": user_input}
-    ]
+    emotion_message = f"The user has been feeling {emotion}. Keep this feeling in mind."
+
+    messages = f"""
+        ### Instruction ###
+        You are Solace, a professional and compassionate mental health chatbot.
+        Your role is to provide emotional support, active listening, and well-being advice.
+        Avoid discussing unrelated topics like technology, photography, or sports.
+        Always be empathetic and ensure your responses focus on well-being.
+
+        ### Conversation History ###
+        {chat_summary}
+
+        ### User Emotion ###
+        {emotion_message}
+
+        ### User Input ###
+        User: {user_input}
+
+        ### Response ###
+        Assistant:
+        """
+
+    print("📩 Sending Request to Model:", messages)
+
+    api_url = f"https://api-inference.huggingface.co/models/{model_name}"
+    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
+    payload = {"inputs": messages, "parameters": {"max_new_tokens": 150}}
 
     try:
-        completion = client.chat.completions.create(
-            model=model_name,
-            messages=messages, 
-            max_tokens=1024
-        )
+        response = requests.post(api_url, headers=headers, json=payload)
 
-        if completion.choices:
-            return completion.choices[0].message.content.strip()
+        if response.status_code == 200:
+            generated_text = response.json()[0].get("generated_text", "").strip()
+            if "Assistant:" in generated_text:
+                generated_text = generated_text.split("Assistant:", 1)[-1].strip()
+
+            print("✅ Assistant Response:", generated_text)
+            return generated_text
         else:
+            print(f"❌ API ERROR: {response.status_code} - {response.text}")
             return "Sorry, I couldn't generate a response."
 
     except Exception as e:
-        error_message = f"Error in response generation: {str(e)}"
-        print(error_message)
-        st.error(error_message)
-        return "Oops! Something went wrong. Please try again later."
+        print(f"🚨 API ERROR: {e}")  
+        return "Oops! Something went wrong."
 
-def typewriter_effect(text, speed=0.01):  # Increased typing speed (reduced delay)
+def typewriter_effect(text, speed=0.01):
     """Simulate a typing effect for the AI's response."""
     placeholder = st.empty()
     for i in range(len(text) + 1):
         placeholder.markdown(f'<div class="assistant-message">{text[:i]}</div>', unsafe_allow_html=True)
-        time.sleep(speed)  # Reduced delay for faster typing effect
+        time.sleep(speed)
 
-# # def handle_audio_input():
-#     # Record the audio input from the user when the mic icon is clicked
-#     audio_data = audio_recorder()
-
-#     if audio_data:
-#         # Save the audio to a temporary file
-#         with tempfile.NamedTemporaryFile(delete=False) as temp_audio_file:
-#             temp_audio_file.write(audio_data)
-#             temp_audio_file.close()
-
-#             # Use speech recognition to convert audio to text
-#             recognizer = sr.Recognizer()
-#             audio_file = sr.AudioFile(temp_audio_file.name)
-            
-#             with audio_file as source:
-#                 audio = recognizer.record(source)
-            
-#             try:
-#                 user_input = recognizer.recognize_google(audio)  # Using Google Speech Recognition
-#                 st.markdown(f"**You said**: {user_input}")
-#                 return user_input
-#             except sr.UnknownValueError:
-#                 st.error("Sorry, I couldn't understand the audio.")
-#                 return None
-#             except sr.RequestError as e:
-#                 st.error(f"Could not request results from Google Speech Recognition service; {e}")
-#                 return None
-#     else:
-#         return None        
 
 def main():
     st.set_page_config(page_title="SoulSolace", page_icon="./logo.svg", layout="centered")
