@@ -116,12 +116,8 @@ def generate_response(user_input, session_id):
 
     messages = [
         {
-            "role": "system", 
-            "content": f"You are Solace, an AI chatbot providing emotional support. Tailor the reply to provide emotional assistance."
-        },
-        {
             "role": "user", 
-            "content": f"User Input: {user_input} (User is feeling {dominant_emotion}. Recent conversation: {chat_summary})."
+            "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
         },
     ]
 

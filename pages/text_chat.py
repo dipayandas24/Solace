@@ -80,7 +80,7 @@ def summarize_chat_history(session_id,user_input):
     if user_messages:
         user_messages = user_messages[:-1]
 
-    user_summary = "; ".join(user_messages[-3:]) if user_messages else "No user messages yet. Start a conversation!"
+    user_summary = "; ".join(user_messages[-3:]) if user_messages else "No previous messages yet. Start a conversation!"
 
     chat_summary = f"User's last few messages: {user_summary}"
 
@@ -109,13 +109,13 @@ def generate_response(user_input, session_id):
     chat_summary, dominant_emotion = summarize_chat_history(session_id,user_input)
 
     messages = [
-        {
-            "role": "system", 
-            "content": f"You are Solace, an AI chatbot providing emotional support. Tailor the reply to provide emotional assistance."
-        },
+        # {
+        #     "role": "system", 
+        #     "content": f"You are Solace, an AI chatbot providing emotional support. Tailor the reply to provide emotional assistance. User is feeling {dominant_emotion}. Previous user messages: {chat_summary}."
+        # },
         {
             "role": "user", 
-            "content": f"User Input: {user_input} (User is feeling {dominant_emotion}. Recent conversation: {chat_summary})."
+            "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
         },
     ]
 
@@ -137,8 +137,10 @@ def generate_response(user_input, session_id):
 
         if not generated_text:
             generated_text = "I'm here for you. Please tell me more about how you're feeling."
+            
+        return generated_text
 
-        return generated_text.encode('utf-8', 'ignore').decode('utf-8')
+        # return generated_text.encode('utf-8', 'ignore').decode('utf-8')
 
     except Exception as e:
         return f"An error occurred: {str(e)}"
