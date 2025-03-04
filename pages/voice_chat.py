@@ -19,8 +19,8 @@ import text2emotion as te
 import speech_recognition as sr
 import tempfile
 from audio_recorder_streamlit import audio_recorder
+from huggingface_hub import InferenceClient
 
-# Load environment variables
 load_dotenv()
 
 # Database setup
@@ -45,16 +45,15 @@ HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 if not HF_API_KEY:
     raise ValueError("Hugging Face API Key is missing. Set HUGGINGFACE_API_KEY in your .env file.")
 
-client = InferenceClient(provider="hf-inference", api_key=HF_API_KEY)
+API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
 
-RED_FLAGS = ["suicide", "self-harm", "depression"]
+RED_FLAGS = ["suicide", "self-harm", "die", "dying", "end my life"]
 
 def get_session_id():
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
     return st.session_state.session_id
-
-import streamlit as st
 
 def reset_session():
     session_id = get_session_id()
@@ -62,10 +61,7 @@ def reset_session():
     db.query(ChatHistory).filter(ChatHistory.session_id == session_id).delete()
     db.commit()
     db.close()
-    st.session_state.clear()
-    st.session_state.session_id = str(uuid.uuid4())
-    st.session_state["messages"] = [] 
-    st.rerun()
+    st.session_state["messages"] = []
 
 def save_message(session_id, role, content):
     db = SessionLocal()
@@ -74,97 +70,84 @@ def save_message(session_id, role, content):
     db.commit()
     db.close()
 
-
-def analyze_red_flags(user_input):
-    for flag in RED_FLAGS:
-        if flag in user_input.lower():
-            return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline."
-    return False, ""
-
 def get_chat_history(session_id):
     db = SessionLocal()
     messages = db.query(ChatHistory).filter(ChatHistory.session_id == session_id).order_by(ChatHistory.timestamp).all()
     db.close()
-    
-    chat_history = [{"role": msg.role, "content": msg.content} for msg in messages]
-    
-    if not all(isinstance(message, dict) and "role" in message and "content" in message for message in chat_history):
-        raise ValueError("Chat history format is incorrect. Expected a list of dictionaries with 'role' and 'content'.")
-    
-    return chat_history
+    return [{"role": msg.role, "content": msg.content} for msg in messages]
 
-def summarize_chat_history(session_id):
+def summarize_chat_history(session_id,user_input):
+    """Summarizes the last few messages (excluding the latest user input) and extracts user emotions."""
     db = SessionLocal()
     messages = db.query(ChatHistory).filter(ChatHistory.session_id == session_id).order_by(ChatHistory.timestamp).all()
     db.close()
 
-    if not messages:
-        return "No prior conversation.", "neutral"
-
     user_messages = [msg.content for msg in messages if msg.role == "user"]
-    assistant_messages = [msg.content for msg in messages if msg.role == "assistant"]
+    if user_messages:
+        user_messages = user_messages[:-1]
 
-    user_summary = "User mentioned: " + "; ".join(user_messages[-3:]) if user_messages else "No user messages yet."
-    assistant_summary = "Assistant responded: " + "; ".join(assistant_messages[-3:]) if assistant_messages else "No assistant responses yet."
-    
-    chat_summary = f"Conversation Summary:\n{user_summary}\n{assistant_summary}"
-    
-    emotions = te.get_emotion(user_summary)
-    dominant_emotion = max(emotions, key=emotions.get)  
+    user_summary = "; ".join(user_messages[-3:]) if user_messages else "No user messages yet. Start a conversation!"
+
+    chat_summary = f"User's last few messages: {user_summary}"
+
+    emotions = te.get_emotion(user_input)
+    dominant_emotion = max(emotions, key=emotions.get)
 
     return chat_summary, dominant_emotion
 
-def generate_response(user_input, session_id, model_name="meta-llama/Meta-Llama-3-8B-Instruct"):
+def analyze_red_flags(user_input):
+    for flag in RED_FLAGS:
+        if flag in user_input.lower():
+            return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. \n Contact: Mental Health Support - 1800-234-5678"
+    return False, ""
+
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=os.getenv("HUGGINGFACE_API_KEY")
+)
+
+def generate_response(user_input, session_id):
+    """Generates a meaningful response using Hugging Face Inference API with proper formatting."""
+
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
         return red_flag_response
+    chat_summary, dominant_emotion = summarize_chat_history(session_id,user_input)
 
-    chat_summary, emotion = summarize_chat_history(session_id)
-    emotion_message = f"The user has been feeling {emotion}. Keep this feeling in mind."
-
-    messages = f"""
-        ### Instruction ###
-        You are Solace, a professional and compassionate mental health chatbot.
-        Your role is to provide emotional support, active listening, and well-being advice.
-        Avoid discussing unrelated topics like technology, photography, or sports.
-        Always be empathetic and ensure your responses focus on well-being.
-
-        ### Conversation History ###
-        {chat_summary}
-
-        ### User Emotion ###
-        {emotion_message}
-
-        ### User Input ###
-        User: {user_input}
-
-        ### Response ###
-        Assistant:
-        """
-
-    print("📩 Sending Request to Model:", messages)
-
-    api_url = f"https://api-inference.huggingface.co/models/{model_name}"
-    headers = {"Authorization": f"Bearer {HF_API_KEY}"}
-    payload = {"inputs": messages, "parameters": {"max_new_tokens": 150}}
+    messages = [
+        {
+            "role": "system", 
+            "content": f"You are Solace, an AI chatbot providing emotional support. Tailor the reply to provide emotional assistance."
+        },
+        {
+            "role": "user", 
+            "content": f"User Input: {user_input} (User is feeling {dominant_emotion}. Recent conversation: {chat_summary})."
+        },
+    ]
 
     try:
-        response = requests.post(api_url, headers=headers, json=payload)
+        completion = client.chat.completions.create(
+            model="meta-llama/Meta-Llama-3-8B-Instruct",
+            messages=messages,
+            temperature=0.5,
+            max_tokens=2048,
+            top_p=0.7,
+            stream=True
+        )
 
-        if response.status_code == 200:
-            generated_text = response.json()[0].get("generated_text", "").strip()
-            if "Assistant:" in generated_text:
-                generated_text = generated_text.split("Assistant:", 1)[-1].strip()
+        generated_text = ""
+        generated_text = ""
+        for chunk in completion:
+            if chunk.choices and chunk.choices[0].delta.content:
+                generated_text += chunk.choices[0].delta.content
 
-            print("✅ Assistant Response:", generated_text)
-            return generated_text
-        else:
-            print(f"❌ API ERROR: {response.status_code} - {response.text}")
-            return "Sorry, I couldn't generate a response."
+        if not generated_text:
+            generated_text = "I'm here for you. Please tell me more about how you're feeling."
+
+        return generated_text.encode('utf-8', 'ignore').decode('utf-8')
 
     except Exception as e:
-        print(f"🚨 API ERROR: {e}")  
-        return "Oops! Something went wrong."
+        return f"An error occurred: {str(e)}"
 
 def handle_audio_input():
     """Capture voice input, convert to text using Google Speech Recognition."""
@@ -183,7 +166,6 @@ def handle_audio_input():
 
             try:
                 user_input = recognizer.recognize_google(audio)  # Convert audio to text
-                # st.markdown(f"🎤 **You said**: {user_input}")
                 return user_input
             except sr.UnknownValueError:
                 st.error("Sorry, I couldn't understand the audio.")
@@ -272,10 +254,6 @@ def main():
         st.markdown("## Solace")
         st.markdown("__An Emotional Support Chatbot__")
         st.markdown("*Believe you can and you're halfway there. – Theodore Roosevelt.*")
-
-        # Glassmorphic Buttons
-        st.markdown('<div class="glassmorphic-button">Select Model</div>', unsafe_allow_html=True)
-        selected_model = st.selectbox("", ["meta-llama/Meta-Llama-3-8B-Instruct"], label_visibility="hidden")
 
         if st.button("Restart Session", key="restart_button", help="Click to restart the session"):
             reset_session()
