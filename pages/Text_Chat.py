@@ -218,7 +218,28 @@ def main():
             .centered-subheader img {
                 width: 30px; 
                 margin-right: 10px;
-            }    
+            }
+
+            .mic-button {
+                background: rgba(90, 90, 90, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-left: 10px;
+                cursor: pointer;
+            }
+            .mic-button:hover {
+                background: rgba(90, 90, 90, 0.2);
+            }
+            .mic-button img {
+                width: 20px;
+                height: 20px;
+            }   
 
             .sidebar-logo {
                 text-align: center;
