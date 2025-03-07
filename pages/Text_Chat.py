@@ -42,6 +42,11 @@ if not HF_API_KEY:
 API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
 HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
 
+client = InferenceClient(
+    provider="hf-inference",
+    api_key=os.getenv("HUGGINGFACE_API_KEY")
+)
+
 RED_FLAGS = ["suicide", "self-harm", "depression"]
 
 def get_session_id():
@@ -95,10 +100,6 @@ def analyze_red_flags(user_input):
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline."
     return False, ""
 
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=os.getenv("HUGGINGFACE_API_KEY")
-)
 
 def generate_response(user_input, session_id):
     """Generates a meaningful response using Hugging Face Inference API with proper formatting."""
@@ -157,9 +158,11 @@ def main():
     st.set_page_config(page_title="SoulSolace", page_icon="./logo.svg", layout="centered")
     st.markdown("""
         <style>
-            .stChatFloatingInputContainer {
+            stChatFloatingInputContainer {
                 bottom: 2rem;
-                max-width: 70%
+                max-width: 70%;
+                display: flex;
+                align-items: center;
             }
             .user-message {
                 background: rgba(139, 191, 252, 0.2);
@@ -198,7 +201,7 @@ def main():
                 color: white;
             }
             .stChatInput {
-                max-width: 100%;
+                flex-grow: 1;
                 margin: auto;
             }
             .centered-subheader {
@@ -249,7 +252,27 @@ def main():
             .sidebar-title {
                 font-size: 24px;
                 margin-left: 10px;
-            }    
+            }
+            .mic-button {
+                background: rgba(90, 90, 90, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-left: 10px;
+                cursor: pointer;
+            }
+            .mic-button:hover {
+                background: rgba(90, 90, 90, 0.2);
+            }
+            .mic-button img {
+                width: 20px;
+                height: 20px;
+            }       
         </style>
     """, unsafe_allow_html=True)
 
@@ -272,7 +295,7 @@ def main():
         st.markdown("- *India*: Mental Health Support - 1800-234-5678")
         st.markdown("- *India*: Suicide Prevention - 1800-456-7890")
         st.markdown("- *India*: Domestic Violence Support - 1800-567-8901")
-        
+            
 
     chat_history = get_chat_history(session_id)
     if not chat_history:

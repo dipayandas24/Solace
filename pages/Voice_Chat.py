@@ -260,8 +260,9 @@ def main():
         st.markdown("- *India*: Suicide Prevention - 1800-456-7890")
         st.markdown("- *India*: Domestic Violence Support - 1800-567-8901")
         
-    st.title("🎙️ SoulSolace Voice Chatbot")
-    st.markdown("**Talk to Solace using voice input. Click the microphone to record.**")
+    st.markdown('<h1 style="color: #8bbffc; font-weight: 500;"> Hi, I am Solace! </h1>', unsafe_allow_html=True)
+
+    st.markdown("**Let's actually talk the way we like the most**")
 
     user_input = handle_audio_input()
 
