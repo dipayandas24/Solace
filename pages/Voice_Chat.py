@@ -96,6 +96,9 @@ def summarize_chat_history(session_id,user_input):
     return chat_summary, dominant_emotion
 
 def analyze_red_flags(user_input):
+    flag1 = "fired"
+    if(flag1 in user_input.lower()):
+        return True, "I'm really sorry to hear that. I know this must be an incredibly tough moment for you, and it's okay to feel upset. But please remember—this does not define your worth or your abilities. Many successful people have faced setbacks like this and used them as a turning point for something even better. Take some time to process your emotions, but also remind yourself that this could be the start of a new opportunity. You have skills, experience, and resilience, and the right door will open for you. When you're ready, update your resume, reach out to your network, and explore new possibilities. You are stronger than this situation, and you will rise again. If you need to talk, I’m here for you. Sending you strength and support!"
     for flag in RED_FLAGS:
         if flag in user_input.lower():
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. \n Contact: Mental Health Support - 1800-234-5678"

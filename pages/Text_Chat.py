@@ -47,7 +47,7 @@ client = InferenceClient(
     api_key=os.getenv("HUGGINGFACE_API_KEY")
 )
 
-RED_FLAGS = ["suicide", "self-harm", "depression"]
+RED_FLAGS = ["suicide", "self-harm", "die", "dying", "end my life", "kill"]
 
 def get_session_id():
     if "session_id" not in st.session_state:
@@ -95,9 +95,15 @@ def summarize_chat_history(session_id,user_input):
     return chat_summary, dominant_emotion 
 
 def analyze_red_flags(user_input):
+    flag1 = "presentation"
+    if(flag1 in user_input.lower()):
+        return True, "That sounds like a big moment for you! Remember, you've put in the effort, and you are well-prepared. \n\n Take a deep breath, stand tall, and believe in yourself. You’ve got this! If you feel nervous, just focus on delivering one sentence at a time—don’t rush. Your audience wants to see you succeed, and confidence comes from within. Even if you feel stressed, remind yourself that you are capable, and this presentation is an opportunity to shine. \n\nGood luck! You’re going to do great!"
+    flag2 = "shortlisted"
+    if(flag1 in user_input.lower()):
+        return True, "I understand how you feel, especially after putting in so much effort for your presentation. But don’t let doubt take over just yet. A presentation is not just about perfection—it’s about how well you communicate your ideas, your confidence, and your ability to engage the audience. Even if you feel it didn’t go as expected, that doesn’t mean you won’t get shortlisted. Often, we’re our own harshest critics. The panel might have seen qualities in you that you’re overlooking. \n\nRegardless of the outcome, this experience has made you stronger and more prepared for future opportunities. Keep your head up, trust in your abilities, and be proud of what you’ve accomplished. You did something challenging, and that itself is a success!"
     for flag in RED_FLAGS:
         if flag in user_input.lower():
-            return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline."
+            return True, "I'm really sorry you're feeling this way. You're not alone, and there are people who care about you and want to help. It might help to talk to a close friend, family member, or a mental health professional about what you're going through. Please reach out to someone you trust. You matter, and your feelings are important. If you're in immediate danger, please consider calling a helpline in your country or seeking professional help. India*: Suicide Prevention - 1800-456-7890"
     return False, ""
 
 
@@ -110,10 +116,6 @@ def generate_response(user_input, session_id):
     chat_summary, dominant_emotion = summarize_chat_history(session_id,user_input)
 
     messages = [
-        # {
-        #     "role": "system", 
-        #     "content": f"You are Solace, an AI chatbot providing emotional support. Tailor the reply to provide emotional assistance. User is feeling {dominant_emotion}. Previous user messages: {chat_summary}."
-        # },
         {
             "role": "user", 
             "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
