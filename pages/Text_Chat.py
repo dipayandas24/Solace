@@ -39,7 +39,7 @@ HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
 if not HF_API_KEY:
     raise ValueError("Hugging Face API Key is missing. Set HUGGINGFACE_API_KEY in your .env file.")
 
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+API_URL = "https://router.huggingface.co/novita/v3/openai/chat/completions"
 HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
 
 client = InferenceClient(
@@ -108,42 +108,32 @@ def analyze_red_flags(user_input):
 
 
 def generate_response(user_input, session_id):
-    """Generates a meaningful response using Hugging Face Inference API with proper formatting."""
 
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
         return red_flag_response
-    chat_summary, dominant_emotion = summarize_chat_history(session_id,user_input)
 
-    messages = [
-        {
-            "role": "user", 
-            "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
-        },
-    ]
+    chat_summary, dominant_emotion = summarize_chat_history(session_id, user_input)
+
+    formatted_input = {
+        "messages": [
+            {
+                "role": "user",
+                "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
+            }
+        ],
+        "model": "meta-llama/llama-3-8b-instruct"
+    }
 
     try:
-        completion = client.chat.completions.create(
-            model="meta-llama/Meta-Llama-3-8B-Instruct",
-            messages=messages,
-            temperature=0.5,
-            max_tokens=2048,
-            top_p=0.7,
-            stream=True
-        )
+        response = requests.post(API_URL, headers=HEADERS, json=formatted_input)
+        response.raise_for_status() 
 
-        generated_text = ""
-        generated_text = ""
-        for chunk in completion:
-            if chunk.choices and chunk.choices[0].delta.content:
-                generated_text += chunk.choices[0].delta.content
-
-        if not generated_text:
-            generated_text = "I'm here for you. Please tell me more about how you're feeling."
-            
-        return generated_text
-
-        # return generated_text.encode('utf-8', 'ignore').decode('utf-8')
+        data = response.json()
+        if "choices" in data and data["choices"]:
+            return data["choices"][0]["message"]["content"]
+        else:
+            return "I'm here for you. Please tell me more about how you're feeling."
 
     except Exception as e:
         return f"An error occurred: {str(e)}"
