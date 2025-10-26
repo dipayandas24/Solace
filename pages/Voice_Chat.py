@@ -13,19 +13,30 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-from huggingface_hub import InferenceClient
+import google.generativeai as genai
 import time  
 import text2emotion as te
 import speech_recognition as sr
 import tempfile
 from audio_recorder_streamlit import audio_recorder
-from huggingface_hub import InferenceClient
 
 load_dotenv()
 
-# Database setup
+# Database setup with graceful fallback to SQLite if DATABASE_URL is unreachable or credentials fail
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
+engine = None
+if DATABASE_URL:
+    try:
+        engine = create_engine(DATABASE_URL)
+        conn = engine.connect()
+        conn.close()
+    except Exception:
+        engine = None
+
+if engine is None:
+    SQLITE_URL = "sqlite:///./solace.db"
+    engine = create_engine(SQLITE_URL)
+
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -40,13 +51,12 @@ class ChatHistory(Base):
 
 Base.metadata.create_all(engine)
 
-# Hugging Face API setup
-HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-if not HF_API_KEY:
-    raise ValueError("Hugging Face API Key is missing. Set HUGGINGFACE_API_KEY in your .env file.")
+# Gemini (Google Generative AI) setup
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("Gemini API Key is missing. Set GEMINI_API_KEY in your .env file.")
 
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
-HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
+genai.configure(api_key=GEMINI_API_KEY)
 
 RED_FLAGS = ["suicide", "self-harm", "die", "dying", "end my life"]
 
@@ -104,10 +114,7 @@ def analyze_red_flags(user_input):
             return True, "I'm really sorry you're feeling this way. Please consider reaching out to a professional or a helpline. \n Contact: Mental Health Support - 1800-234-5678"
     return False, ""
 
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=os.getenv("HUGGINGFACE_API_KEY")
-)
+# Removed Hugging Face InferenceClient - using Google Gemini instead
 
 def generate_response(user_input, session_id):
     """Generates a meaningful response using Hugging Face Inference API with proper formatting."""
@@ -125,26 +132,21 @@ def generate_response(user_input, session_id):
     ]
 
     try:
-        completion = client.chat.completions.create(
-            model="meta-llama/Meta-Llama-3-8B-Instruct",
-            messages=messages,
-            temperature=0.5,
-            max_tokens=2048,
-            top_p=0.7,
-            stream=True
-        )
+        # Use a supported Gemini model name. If you need a different model, set GEMINI_MODEL in your .env
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-pro")
+        model = genai.GenerativeModel(model_name)
+        chat = model.start_chat()
 
-        generated_text = ""
-        generated_text = ""
-        for chunk in completion:
-            if chunk.choices and chunk.choices[0].delta.content:
-                generated_text += chunk.choices[0].delta.content
+        response = chat.send_message(messages[0]["content"], stream=False)
+
+        generated_text = getattr(response, "text", None)
+        if not generated_text:
+            generated_text = str(response)
 
         if not generated_text:
             generated_text = "I'm here for you. Please tell me more about how you're feeling."
 
-        return generated_text.encode('utf-8', 'ignore').decode('utf-8')
-
+        return generated_text
     except Exception as e:
         return f"An error occurred: {str(e)}"
 

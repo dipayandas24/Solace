@@ -28,7 +28,7 @@ services:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
-      HUGGINGFACE_API_KEY: ${HUGGINGFACE_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     volumes:
       - .:/app
     command: ["streamlit", "run", "file.py"]

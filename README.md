@@ -2,10 +2,10 @@
 
 # Solace - AI-Powered Chatbot
 
-*Solace* is an AI-powered chatbot designed to provide users with personalized and engaging conversations. Using a combination of advanced NLP models like Meta's LLaMA, sentiment analysis tools, and speech recognition, Solace offers a seamless conversational experience with context-aware and emotion-sensitive responses. It supports both text and voice-based interactions and is fully dockerized and deployed on AWS for scalability and reliability.
+*Solace* is an AI-powered chatbot designed to provide users with personalized and engaging conversations. Using a combination of advanced NLP models like Google's Gemini, sentiment analysis tools, and speech recognition, Solace offers a seamless conversational experience with context-aware and emotion-sensitive responses. It supports both text and voice-based interactions and is fully dockerized and deployable for scalability and reliability.
 
 ## Features
-- **Contextual Conversations**: Powered by **Meta LLaMA** for intelligent response generation.
+- **Contextual Conversations**: Powered by **Google Gemini** for intelligent response generation.
 - **Emotion-Aware**: Detects emotions through **Text2Emotion** and adapts responses accordingly.
 - **Voice Interaction**: Supports **Speech-to-Text** and **Speech Recognition** for voice-based interactions.
 - **Cloud Deployment**: Dockerized and hosted on **AWS** for scalability and performance.
@@ -99,13 +99,13 @@ cd Solace
 
 1. *Streamlit & HTML/CSS*: Provides a fast and interactive web UI for chatbot interactions. Custom HTML/CSS ensures a polished user experience.
    
-2. *Hugging Face Transformers*: Utilized for powerful NLP tasks like response generation and understanding. Hugging Face simplifies the integration of pre-trained models like Meta LLaMA.
+2. *Google Gemini (Generative AI)*: Utilized for powerful NLP tasks like response generation and understanding. Configure GEMINI_API_KEY in your environment and use the `google-generativeai` Python client.
 
 3. *Text2Emotion*: Detects emotions from user input to enable personalized, emotion-sensitive responses from the chatbot.
 
 4. *Speech-to-Text & Speech Recognition*: Allows users to interact with the chatbot using voice commands, making it more accessible and engaging.
 
-5. *Meta LLaMA Model*: A highly efficient and advanced model for natural language processing, enabling context-aware, dynamic conversations with users.
+5. *Google Gemini Model*: A highly capable generative model for natural language processing, enabling context-aware, dynamic conversations with users.
 
 6. *PostgreSQL & SQLAlchemy*: Used for structured storage of user data and conversation history, ensuring quick retrieval and consistency.
 

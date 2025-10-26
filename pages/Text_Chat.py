@@ -13,13 +13,30 @@ import os
 from dotenv import load_dotenv
 import text2emotion as te
 import time
-from huggingface_hub import InferenceClient
+import google.generativeai as genai
 
 load_dotenv()
 
-# Database setup
+# Database setup with graceful fallback to SQLite if DATABASE_URL is unreachable or credentials fail
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = create_engine(DATABASE_URL)
+
+# Create engine lazily and robustly; do not crash at import time if Postgres credentials are wrong.
+def _create_engine_with_fallback():
+    # Try the configured DATABASE_URL first
+    if DATABASE_URL:
+        try:
+            eng = create_engine(DATABASE_URL)
+            # Attempt a lightweight check during create_all below rather than connecting now
+            return eng
+        except Exception:
+            pass
+
+    # Fallback to local SQLite for development convenience
+    SQLITE_URL = "sqlite:///./solace.db"
+    eng = create_engine(SQLITE_URL)
+    return eng
+
+engine = _create_engine_with_fallback()
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -32,20 +49,29 @@ class ChatHistory(Base):
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
-Base.metadata.create_all(engine)
+def init_db():
+    global engine, SessionLocal
+    # Try to create tables on the selected engine. If this fails (e.g., Postgres auth),
+    # fall back to SQLite and recreate the engine.
+    try:
+        Base.metadata.create_all(engine)
+    except Exception:
+        # fallback to SQLite and recreate tables there
+        sqlite_url = "sqlite:///./solace.db"
+        engine = create_engine(sqlite_url)
+        SessionLocal = sessionmaker(bind=engine)
+        Base.metadata.create_all(engine)
 
-# Hugging Face API setup
-HF_API_KEY = os.getenv("HUGGINGFACE_API_KEY")
-if not HF_API_KEY:
-    raise ValueError("Hugging Face API Key is missing. Set HUGGINGFACE_API_KEY in your .env file.")
+# Initialize DB after definitions; this avoids raising during import when credentials are invalid
+init_db()
 
-API_URL = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
-HEADERS = {"Authorization": f"Bearer {HF_API_KEY}"}
+# Gemini (Google Generative AI) setup
+# Assumption: using google-generativeai python client. Set GEMINI_API_KEY in your environment.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("Gemini API Key is missing. Set GEMINI_API_KEY in your .env file.")
 
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=os.getenv("HUGGINGFACE_API_KEY")
-)
+genai.configure(api_key=GEMINI_API_KEY)
 
 RED_FLAGS = ["suicide", "self-harm", "die", "dying", "end my life", "kill"]
 
@@ -99,7 +125,7 @@ def analyze_red_flags(user_input):
     if(flag1 in user_input.lower()):
         return True, "That sounds like a big moment for you! Remember, you've put in the effort, and you are well-prepared. \n\n Take a deep breath, stand tall, and believe in yourself. You’ve got this! If you feel nervous, just focus on delivering one sentence at a time—don’t rush. Your audience wants to see you succeed, and confidence comes from within. Even if you feel stressed, remind yourself that you are capable, and this presentation is an opportunity to shine. \n\nGood luck! You’re going to do great!"
     flag2 = "shortlisted"
-    if(flag1 in user_input.lower()):
+    if(flag2 in user_input.lower()):
         return True, "I understand how you feel, especially after putting in so much effort for your presentation. But don’t let doubt take over just yet. A presentation is not just about perfection—it’s about how well you communicate your ideas, your confidence, and your ability to engage the audience. Even if you feel it didn’t go as expected, that doesn’t mean you won’t get shortlisted. Often, we’re our own harshest critics. The panel might have seen qualities in you that you’re overlooking. \n\nRegardless of the outcome, this experience has made you stronger and more prepared for future opportunities. Keep your head up, trust in your abilities, and be proud of what you’ve accomplished. You did something challenging, and that itself is a success!"
     for flag in RED_FLAGS:
         if flag in user_input.lower():
@@ -123,28 +149,25 @@ def generate_response(user_input, session_id):
     ]
 
     try:
-        completion = client.chat.completions.create(
-            model="meta-llama/Meta-Llama-3-8B-Instruct",
-            messages=messages,
-            temperature=0.5,
-            max_tokens=2048,
-            top_p=0.7,
-            stream=True
-        )
+        # Use GenerativeModel -> start_chat -> send_message API
+        # Use a supported Gemini model name. If you need a different model, set GEMINI_MODEL in your .env
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-pro")
+        model = genai.GenerativeModel(model_name)
+        chat = model.start_chat()
 
-        generated_text = ""
-        generated_text = ""
-        for chunk in completion:
-            if chunk.choices and chunk.choices[0].delta.content:
-                generated_text += chunk.choices[0].delta.content
+        # Send the user message and get a response. Use stream=False for simplicity.
+        response = chat.send_message(messages[0]["content"], stream=False)
+
+        # response.text is the high-level text content (per client docs)
+        generated_text = getattr(response, "text", None)
+        if not generated_text:
+            # fallback to stringifying the response
+            generated_text = str(response)
 
         if not generated_text:
             generated_text = "I'm here for you. Please tell me more about how you're feeling."
-            
+
         return generated_text
-
-        # return generated_text.encode('utf-8', 'ignore').decode('utf-8')
-
     except Exception as e:
         return f"An error occurred: {str(e)}"
 
