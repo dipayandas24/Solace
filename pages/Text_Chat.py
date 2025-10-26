@@ -134,19 +134,22 @@ def analyze_red_flags(user_input):
 
 
 def generate_response(user_input, session_id):
-    """Generates a meaningful response using Hugging Face Inference API with proper formatting."""
 
     red_flag_detected, red_flag_response = analyze_red_flags(user_input)
     if red_flag_detected:
         return red_flag_response
-    chat_summary, dominant_emotion = summarize_chat_history(session_id,user_input)
 
-    messages = [
-        {
-            "role": "user", 
-            "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
-        },
-    ]
+    chat_summary, dominant_emotion = summarize_chat_history(session_id, user_input)
+
+    formatted_input = {
+        "messages": [
+            {
+                "role": "user",
+                "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
+            }
+        ],
+        "model": "meta-llama/llama-3-8b-instruct"
+    }
 
     try:
         # Use GenerativeModel -> start_chat -> send_message API
@@ -241,7 +244,28 @@ def main():
             .centered-subheader img {
                 width: 30px; 
                 margin-right: 10px;
-            }    
+            }
+
+            .mic-button {
+                background: rgba(90, 90, 90, 0.1);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-left: 10px;
+                cursor: pointer;
+            }
+            .mic-button:hover {
+                background: rgba(90, 90, 90, 0.2);
+            }
+            .mic-button img {
+                width: 20px;
+                height: 20px;
+            }   
 
             .sidebar-logo {
                 text-align: center;
