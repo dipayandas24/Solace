@@ -1,72 +1,32 @@
-# import gradio as gr
-# from transformers import pipeline
-# import numpy as np
-
-# transcriber = pipeline("automatic-speech-recognition", model="openai/whisper-base.en")
-
-# def transcribe(audio):
-#     sr, y = audio
-    
-#     # Convert to mono if stereo
-#     if y.ndim > 1:
-#         y = y.mean(axis=1)
-        
-#     y = y.astype(np.float32)
-#     y /= np.max(np.abs(y))
-
-#     return transcriber({"sampling_rate": sr, "raw": y})["text"]  
-
-# demo = gr.Interface(
-#     transcribe,
-#     gr.Audio(sources="microphone"),
-#     "text",
-# )
-
-# demo.launch()
-
-
-
-
-
 import nltk
-nltk.download('punkt_tab')
-nltk.data.path.append('./venv/nltk_data')
+nltk.download('punkt', quiet=True)
+nltk.download('averaged_perceptron_tagger', quiet=True)
+nltk.download('brown', quiet=True)
+nltk.download('wordnet', quiet=True)
+# nltk.data.path.append('./venv/nltk_data')
 
 
 import streamlit as st
-import requests
-import re
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, declarative_base
+from nrclex import NRCLex
+from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 import time  
-import text2emotion as te
 import speech_recognition as sr
 import tempfile
 from audio_recorder_streamlit import audio_recorder
 
 load_dotenv()
 
-# Database setup with graceful fallback to SQLite if DATABASE_URL is unreachable or credentials fail
 DATABASE_URL = os.getenv("DATABASE_URL")
-engine = None
-if DATABASE_URL:
-    try:
-        engine = create_engine(DATABASE_URL)
-        conn = engine.connect()
-        conn.close()
-    except Exception:
-        engine = None
-
-if engine is None:
-    SQLITE_URL = "sqlite:///./solace.db"
-    engine = create_engine(SQLITE_URL)
-
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is missing. Set it in your .env file for PostgreSQL connection.")
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -79,7 +39,11 @@ class ChatHistory(Base):
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
-Base.metadata.create_all(engine)
+from sqlalchemy.exc import IntegrityError
+try:
+    Base.metadata.create_all(engine)
+except IntegrityError:
+    pass
 
 # Gemini (Google Generative AI) setup
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -127,11 +91,19 @@ def summarize_chat_history(session_id,user_input):
         user_messages = user_messages[:-1]
 
     user_summary = "; ".join(user_messages[-3:]) if user_messages else "No user messages yet. Start a conversation!"
-
     chat_summary = f"User's last few messages: {user_summary}"
 
-    emotions = te.get_emotion(user_input)
-    dominant_emotion = max(emotions, key=emotions.get)
+    # Aggregate emotions from all user messages in history using NRCLex
+    emotion_scores = {}
+    for msg in user_messages:
+        text_obj = NRCLex(msg)
+        for emotion, score in text_obj.raw_emotion_scores.items():
+            emotion_scores[emotion] = emotion_scores.get(emotion, 0) + score
+    # If no user messages, fallback to current input
+    if not user_messages:
+        text_obj = NRCLex(user_input)
+        emotion_scores = text_obj.raw_emotion_scores
+    dominant_emotion = max(emotion_scores, key=emotion_scores.get) if emotion_scores else "neutral"
 
     return chat_summary, dominant_emotion
 
@@ -157,13 +129,12 @@ def generate_response(user_input, session_id):
     messages = [
         {
             "role": "user", 
-            "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
+            "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying. Please keep your reply crisp, concise, and supportive—no more than 5-7 sentences."
         },
     ]
 
     try:
-        # Use a supported Gemini model name. If you need a different model, set GEMINI_MODEL in your .env
-        model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-pro")
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
         model = genai.GenerativeModel(model_name)
         chat = model.start_chat()
 
@@ -301,9 +272,17 @@ def main():
 
     user_input = handle_audio_input()
 
+    # Display previous chat history
+    chat_history = get_chat_history(session_id)
+    for msg in chat_history:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="user-message">{msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="assistant-message">{msg["content"]}</div>', unsafe_allow_html=True)
+
     if user_input:
-        st.markdown(f'<div class="user-message">{user_input}</div>', unsafe_allow_html=True)
         save_message(session_id, "user", user_input)
+        st.markdown(f'<div class="user-message">{user_input}</div>', unsafe_allow_html=True)
 
         response = generate_response(user_input, session_id)
         typewriter_effect(response, speed=0.032)

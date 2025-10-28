@@ -1,9 +1,11 @@
 import nltk
-nltk.download('punkt')
-nltk.data.path.append('./venv/nltk_data')
+nltk.download('punkt', quiet=True)
+nltk.download('averaged_perceptron_tagger', quiet=True)
+nltk.download('brown', quiet=True)
+nltk.download('wordnet', quiet=True)
+# nltk.data.path.append('./venv/nltk_data')
 
 import streamlit as st
-import requests
 import uuid
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
@@ -11,32 +13,16 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
 from dotenv import load_dotenv
-import text2emotion as te
+from nrclex import NRCLex
 import time
 import google.generativeai as genai
 
 load_dotenv()
 
-# Database setup with graceful fallback to SQLite if DATABASE_URL is unreachable or credentials fail
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Create engine lazily and robustly; do not crash at import time if Postgres credentials are wrong.
-def _create_engine_with_fallback():
-    # Try the configured DATABASE_URL first
-    if DATABASE_URL:
-        try:
-            eng = create_engine(DATABASE_URL)
-            # Attempt a lightweight check during create_all below rather than connecting now
-            return eng
-        except Exception:
-            pass
-
-    # Fallback to local SQLite for development convenience
-    SQLITE_URL = "sqlite:///./solace.db"
-    eng = create_engine(SQLITE_URL)
-    return eng
-
-engine = _create_engine_with_fallback()
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL is missing. Set it in your .env file for PostgreSQL connection.")
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
@@ -49,21 +35,11 @@ class ChatHistory(Base):
     content = Column(Text, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 
-def init_db():
-    global engine, SessionLocal
-    # Try to create tables on the selected engine. If this fails (e.g., Postgres auth),
-    # fall back to SQLite and recreate the engine.
-    try:
-        Base.metadata.create_all(engine)
-    except Exception:
-        # fallback to SQLite and recreate tables there
-        sqlite_url = "sqlite:///./solace.db"
-        engine = create_engine(sqlite_url)
-        SessionLocal = sessionmaker(bind=engine)
-        Base.metadata.create_all(engine)
-
-# Initialize DB after definitions; this avoids raising during import when credentials are invalid
-init_db()
+from sqlalchemy.exc import IntegrityError
+try:
+    Base.metadata.create_all(engine)
+except IntegrityError:
+    pass
 
 # Gemini (Google Generative AI) setup
 # Assumption: using google-generativeai python client. Set GEMINI_API_KEY in your environment.
@@ -112,13 +88,21 @@ def summarize_chat_history(session_id,user_input):
         user_messages = user_messages[:-1]
 
     user_summary = "; ".join(user_messages[-3:]) if user_messages else "No previous messages yet. Start a conversation!"
-
     chat_summary = f"User's last few messages: {user_summary}"
 
-    emotions = te.get_emotion(user_input)
-    dominant_emotion = max(emotions, key=emotions.get)
+    # Aggregate emotions from all user messages in history using NRCLex
+    emotion_scores = {}
+    for msg in user_messages:
+        text_obj = NRCLex(msg)
+        for emotion, score in text_obj.raw_emotion_scores.items():
+            emotion_scores[emotion] = emotion_scores.get(emotion, 0) + score
+    # If no user messages, fallback to current input
+    if not user_messages:
+        text_obj = NRCLex(user_input)
+        emotion_scores = text_obj.raw_emotion_scores
+    dominant_emotion = max(emotion_scores, key=emotion_scores.get) if emotion_scores else "neutral"
 
-    return chat_summary, dominant_emotion 
+    return chat_summary, dominant_emotion
 
 def analyze_red_flags(user_input):
     flag1 = "presentation"
@@ -145,21 +129,17 @@ def generate_response(user_input, session_id):
         "messages": [
             {
                 "role": "user",
-                "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying"
+                "content": f"{user_input}. I am feeling {dominant_emotion}. Behave like an emotional support chatbot and tailor your reply accordingly. My previous interaction with you was {chat_summary}. Consider the previous interaction while replying. Please keep your reply crisp, concise, and supportive—no more than 5-7 sentences."
             }
         ],
-        "model": "meta-llama/llama-3-8b-instruct"
     }
 
     try:
-        # Use GenerativeModel -> start_chat -> send_message API
-        # Use a supported Gemini model name. If you need a different model, set GEMINI_MODEL in your .env
-        model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-pro")
+        model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.5-flash")
         model = genai.GenerativeModel(model_name)
         chat = model.start_chat()
-
-        # Send the user message and get a response. Use stream=False for simplicity.
-        response = chat.send_message(messages[0]["content"], stream=False)
+        message_content = formatted_input["messages"][0]["content"]
+        response = chat.send_message(message_content, stream=False)
 
         # response.text is the high-level text content (per client docs)
         generated_text = getattr(response, "text", None)

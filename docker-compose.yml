@@ -1,4 +1,4 @@
-version: '3.8'
+# ...existing code...
 
 services:
   db:
@@ -14,7 +14,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
   app:
     build: .
@@ -31,7 +31,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
     volumes:
       - .:/app
-    command: ["streamlit", "run", "file.py"]
+    command: ["streamlit", "run", "Home.py"]
 
 volumes:
   postgres_data:
