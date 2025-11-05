@@ -2,11 +2,11 @@
 
 # Solace - AI-Powered Chatbot
 
-*Solace* is an AI-powered chatbot designed to provide users with personalized and engaging conversations. Using a combination of advanced NLP models like Google's Gemini, sentiment analysis tools, and speech recognition, Solace offers a seamless conversational experience with context-aware and emotion-sensitive responses. It supports both text and voice-based interactions and is fully dockerized and deployable for scalability and reliability.
+*Solace* is an AI-powered chatbot designed to provide users with personalized and engaging conversations. Using a combination of advanced NLP models like Google's Gemini, emotion analysis tools (NRCLex), and speech recognition, Solace offers a seamless conversational experience with context-aware and emotion-sensitive responses. It supports both text and voice-based interactions and is fully dockerized and deployable for scalability and reliability.
 
 ## Features
 - **Contextual Conversations**: Powered by **Google Gemini** for intelligent response generation.
-- **Emotion-Aware**: Detects emotions through **Text2Emotion** and adapts responses accordingly.
+- **Emotion-Aware**: Detects emotions through **NRCLex** and adapts responses accordingly.
 - **Voice Interaction**: Supports **Speech-to-Text** and **Speech Recognition** for voice-based interactions.
 - **Cloud Deployment**: Dockerized and hosted on **AWS** for scalability and performance.
 - **Easy Setup**: Quick setup using **Docker**, **Python dependencies**, and **environment variables**.
@@ -56,7 +56,7 @@ pip install -r requirements.txt
 ###  1. Start the Streamlit application  
 
 ```bash
-streamlit run file.py  
+streamlit run Home.py  
 ```
 
 ###  Access the Chatbot
@@ -80,18 +80,32 @@ cd Solace
 ### 2. Build the Docker Image:
 
    ```bash
-   sudo docker-compose build
+   docker-compose build --no-cache
    ```
 
 ### 3. Run the containers:
 
    ```bash
-   sudo docker-compose up -d
+   docker-compose up --build
    ```
 
 ### 4. Access the app:
 
    The app will be available at http://localhost:8501.
+
+---
+
+## NLTK Corpus Setup (for Docker)
+
+NRCLex and TextBlob require several NLTK corpora. These are automatically downloaded at runtime, but if you encounter errors, ensure your entry files include:
+
+```python
+import nltk
+nltk.download('punkt', quiet=True)
+nltk.download('averaged_perceptron_tagger', quiet=True)
+nltk.download('brown', quiet=True)
+nltk.download('wordnet', quiet=True)
+```
 
 ---
 
@@ -101,7 +115,7 @@ cd Solace
    
 2. *Google Gemini (Generative AI)*: Utilized for powerful NLP tasks like response generation and understanding. Configure GEMINI_API_KEY in your environment and use the `google-generativeai` Python client.
 
-3. *Text2Emotion*: Detects emotions from user input to enable personalized, emotion-sensitive responses from the chatbot.
+3. *NRCLex*: Detects emotions from user input to enable personalized, emotion-sensitive responses from the chatbot.
 
 4. *Speech-to-Text & Speech Recognition*: Allows users to interact with the chatbot using voice commands, making it more accessible and engaging.
 
